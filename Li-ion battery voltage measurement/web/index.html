@@ -1,0 +1,468 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>ESP32 Battery Monitor</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            font-family: Arial, Helvetica, sans-serif;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #07111f,
+                    #0b1f35,
+                    #07111f
+                );
+
+            color: white;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 430px;
+
+            padding: 30px 20px;
+
+            text-align: center;
+
+            border-radius: 25px;
+
+            background:
+                rgba(255, 255, 255, 0.06);
+
+            border:
+                1px solid rgba(255, 255, 255, 0.15);
+
+            box-shadow:
+                0 20px 50px
+                rgba(0, 0, 0, 0.45);
+
+            backdrop-filter: blur(15px);
+        }
+
+        .title {
+            font-size: 25px;
+            font-weight: bold;
+
+            letter-spacing: 2px;
+
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #9fb3c8;
+
+            letter-spacing: 1px;
+
+            margin-bottom: 30px;
+        }
+
+        /* Battery */
+
+        .battery {
+            width: 190px;
+            height: 90px;
+
+            border: 5px solid white;
+            border-radius: 14px;
+
+            margin: auto;
+
+            position: relative;
+
+            padding: 5px;
+        }
+
+        .battery::after {
+            content: "";
+
+            position: absolute;
+
+            width: 13px;
+            height: 35px;
+
+            background: white;
+
+            right: -18px;
+            top: 23px;
+
+            border-radius:
+                0 6px 6px 0;
+        }
+
+        .battery-level {
+            height: 100%;
+            width: 0%;
+
+            border-radius: 7px;
+
+            background: #00ff88;
+
+            transition:
+                width 0.8s ease,
+                background 0.5s ease;
+
+            box-shadow:
+                0 0 20px
+                rgba(0, 255, 136, 0.7);
+        }
+
+        /* Charging Animation */
+
+        .battery-level.charging {
+            animation:
+                chargingGlow 1s infinite alternate;
+        }
+
+        @keyframes chargingGlow {
+
+            from {
+                opacity: 0.65;
+            }
+
+            to {
+                opacity: 1;
+            }
+
+        }
+
+        .voltage {
+            margin-top: 30px;
+
+            font-size: 42px;
+
+            font-weight: bold;
+        }
+
+        .unit {
+            font-size: 18px;
+            color: #9fb3c8;
+        }
+
+        .percent {
+            margin-top: 8px;
+
+            font-size: 24px;
+
+            font-weight: bold;
+        }
+
+        .status {
+            margin-top: 25px;
+
+            padding: 12px;
+
+            border-radius: 12px;
+
+            background:
+                rgba(255, 255, 255, 0.08);
+
+            font-weight: bold;
+
+            letter-spacing: 1px;
+        }
+
+        .status-value {
+            margin-left: 5px;
+        }
+
+        .info {
+            margin-top: 25px;
+
+            font-size: 13px;
+
+            color: #9fb3c8;
+        }
+
+        .dot {
+            display: inline-block;
+
+            width: 8px;
+            height: 8px;
+
+            background: #00ff88;
+
+            border-radius: 50%;
+
+            margin-right: 5px;
+
+            box-shadow:
+                0 0 10px #00ff88;
+        }
+
+        /* Low Battery Warning */
+
+        .warning {
+            display: none;
+
+            margin-top: 15px;
+
+            padding: 10px;
+
+            border-radius: 10px;
+
+            background:
+                rgba(255, 40, 40, 0.15);
+
+            color: #ff5555;
+
+            font-size: 13px;
+
+            font-weight: bold;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <div class="title">
+        🔋 ESP32 BATTERY MONITOR
+    </div>
+
+    <div class="subtitle">
+        LIVE Li-Ion VOLTAGE MONITORING
+    </div>
+
+
+    <!-- Battery -->
+
+    <div class="battery">
+
+        <div
+            id="batteryLevel"
+            class="battery-level">
+        </div>
+
+    </div>
+
+
+    <!-- Voltage -->
+
+    <div class="voltage">
+
+        <span id="voltage">
+            --.--
+        </span>
+
+        <span class="unit">
+            V
+        </span>
+
+    </div>
+
+
+    <!-- Percentage -->
+
+    <div class="percent">
+
+        <span id="percent">
+            --
+        </span>
+
+        %
+
+    </div>
+
+
+    <!-- Status -->
+
+    <div class="status">
+
+        STATUS:
+
+        <span
+            id="status"
+            class="status-value">
+
+            WAITING
+
+        </span>
+
+    </div>
+
+
+    <!-- Warning -->
+
+    <div
+        id="warning"
+        class="warning">
+
+        ⚠ LOW BATTERY
+
+    </div>
+
+
+    <!-- Connection -->
+
+    <div class="info">
+
+        <span class="dot"></span>
+
+        ESP32 LIVE MONITORING
+
+    </div>
+
+</div>
+
+
+<script>
+
+function updateBattery() {
+
+    fetch("/battery")
+
+        .then(response => response.json())
+
+        .then(data => {
+
+            const voltage =
+                document.getElementById(
+                    "voltage"
+                );
+
+            const percent =
+                document.getElementById(
+                    "percent"
+                );
+
+            const status =
+                document.getElementById(
+                    "status"
+                );
+
+            const battery =
+                document.getElementById(
+                    "batteryLevel"
+                );
+
+            const warning =
+                document.getElementById(
+                    "warning"
+                );
+
+
+            // Voltage
+
+            voltage.innerText =
+                data.voltage.toFixed(2);
+
+
+            // Percentage
+
+            percent.innerText =
+                data.percent;
+
+
+            // Status
+
+            status.innerText =
+                data.status;
+
+
+            // Battery width
+
+            battery.style.width =
+                data.percent + "%";
+
+
+            /*
+             * Battery colors
+             */
+
+            if (data.percent <= 20) {
+
+                battery.style.background =
+                    "#ff3333";
+
+                battery.style.boxShadow =
+                    "0 0 20px rgba(255,51,51,0.8)";
+
+                warning.style.display =
+                    "block";
+
+            }
+
+            else if (data.percent <= 40) {
+
+                battery.style.background =
+                    "#ff9900";
+
+                battery.style.boxShadow =
+                    "0 0 20px rgba(255,153,0,0.8)";
+
+                warning.style.display =
+                    "none";
+
+            }
+
+            else {
+
+                battery.style.background =
+                    "#00ff88";
+
+                battery.style.boxShadow =
+                    "0 0 20px rgba(0,255,136,0.8)";
+
+                warning.style.display =
+                    "none";
+
+            }
+
+        })
+
+        .catch(error => {
+
+            console.log(
+                "Connection error:",
+                error
+            );
+
+        });
+
+}
+
+
+// First update
+
+updateBattery();
+
+
+// Update every 1 second
+
+setInterval(
+    updateBattery,
+    1000
+);
+
+</script>
+
+</body>
+
+</html>
+```
