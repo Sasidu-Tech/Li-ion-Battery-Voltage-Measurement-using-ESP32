@@ -1,5 +1,22 @@
 # 🔋 Li-ion Battery Voltage Measurement using ESP32
 
+## 🎥 Demo
+
+[![Watch Demo on YouTube](https://img.shields.io/badge/Watch%20Demo-YouTube-red?logo=youtube)](https://youtu.be/23R7d3CCvRk?si=eYYkkZZFSemvO7nf)
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/Sasidu-Tech/Li-ion-Battery-Voltage-Measurement-using-ESP32/blob/main/images/web%20dashboard%20(1).png" width="400">
+    </td>
+    <td align="center">
+      <img src="https://github.com/Sasidu-Tech/Li-ion-Battery-Voltage-Measurement-using-ESP32/blob/main/images/circuit%20(5).jpeg" alt="ESP32 Wi-Fi Scanner Demo" width="400">
+    </td>
+  </tr>
+</table>
+
+
+
 A simple **Li-ion Battery Voltage Measurement System** built using an **ESP32** and a resistor voltage divider.
 
 The system measures the battery voltage safely through the ESP32 ADC pin and displays the measured voltage on a **web-based dashboard** with a battery-level animation.
